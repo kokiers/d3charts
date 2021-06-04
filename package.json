@@ -1,0 +1,25 @@
+{
+  "name": "charts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run serve",
+    "start": "vue-cli-service serve",
+    "build": "vue-cli-service build"
+  },
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "d3": "^5.14.2",
+    "html2canvas": "^1.0.0-rc.5",
+    "stylus": "^0.54.7",
+    "stylus-loader": "^3.0.2",
+    "vue": "^2.6.10",
+    "vue-i18n": "^8.10.0",
+    "vue-router": "^3.0.3"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^3.9.0",
+    "@vue/cli-service": "^3.9.0",
+    "vue-template-compiler": "^2.6.10"
+  }
+}
