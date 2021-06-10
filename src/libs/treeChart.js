@@ -11,13 +11,16 @@ export default class treeChart {
     height
   }) {
     this.el = `#${el}`
-    this.height = height || 300
+    this.height = height || 400
     let element = document.getElementById(el)
     if (!width) {
       this.width = element.offsetWidth
     } else {
       this.width = width
     }
+    this.start = {}
+    this.start.x = element.offsetLeft
+    this.start.y = element.offsetTop 
   }
 
   resetSvg() {
@@ -26,9 +29,37 @@ export default class treeChart {
       .remove();
     this.initTree()
   }
+
+  initTree() {
+
+    let num = parseInt(Math.random() * 20)
+    let list = [] , lastId = [], parent = ''
+    for(let i = 0; i < num ; i++ ){
+      let tid = `${num}-${parseInt(Math.random() * 100000)}`
+      let level = i > 0 ? i < 3 ? 1 : 2 : 0
+      list.push({
+        weight: parseInt(Math.random() * 1000),
+        name: `帅哥${i}`,
+        sourceId: level > 1 ? Math.random() < 0.5 && lastId[1] ? lastId[1] : lastId[0] : parent,
+        targetId: tid,
+        level: level 
+      })
+      if (level == 0) {
+        parent = tid
+      }
+      if (level == 1){
+        lastId.push(tid)
+      }
+    }
+    this.nodeData = [...list]
+    if (this.nodeData.length < 1) {
+      return false;
+    } else {
+      this.drawTree();
+    }
+  }
   sortChild(arr) {
-    let left = [],
-      right = []
+    let left = [], right = []
     arr.sort((a, b) => {
       let va = a.weight || 0
       let ba = b.weight || 0
@@ -42,126 +73,31 @@ export default class treeChart {
       }
     })
     let list = left.concat(right)
-    list = list.map((v, k) => {
-      v.index = k
-      return v
-    })
     return list
   }
-  sortNodes() {
-    let obj = {}
-    let list = []
-    if (this.links.length) {
-      this.links.forEach(v => {
-        let level = v.level
-        if (!obj[level]) {
-          obj[level] = []
-        }
-        obj[level].push(v)
-      })
-      for (let i in obj) {
-        list = list.concat(this.sortChild(obj[i]))
-      }
-    }
-    return list
-  }
-  initTree() {
-    let list = this.sortNodes()
-    let nodes = {}
-    this.nodes.forEach(v => {
-      nodes[v.kh] = v
-    })
-    let sourceNode = {}
-    // 计算节点  节点 id： level + '-'+ kh
-    list = list.map(v => {
-      if (v.level == -1) {
-        this.parentId = v.target
-        this.defaultQuery = {
-          dfje: v.weight,
-          jysj: v.jysj
-        }
-      }
-      let level = v.level == -1 ? 0 : v.level
-      let sourceId = level + '-' + v.source
-      let targetId = (level + 1) + '-' + v.target
-      if (!sourceNode[sourceId]) {
-        sourceNode[sourceId] = { ...nodes[v.source],
-          targetId: sourceId
-        }
-      }
-      if (!sourceNode[targetId]) {
-        sourceNode[targetId] = { ...nodes[v.target],
-          targetId: targetId
-        }
-      }
-      v.sourceId = sourceId
-      v.targetId = targetId
-      return v
-    })
-    this.nodeData = Object.values(sourceNode)
-    this.nodeData = this.nodeData.map(v => {
-      v.link = list.find(e => {
-        return e.targetId == v.targetId
-      })
-      return v
-    })
 
-    this.initWidth()
-    if (this.nodeData.length < 1) {
-      return false;
-    } else {
-      this.drawTree();
-    }
-  }
-  initWidth() {
-    if (this.isFixed) {
-      this.width = window.innerWidth
-      this.height = window.innerHeight;
-      this.start.x = 0
-      this.start.y = 0
-    } else {
-      let conf = this.$refs.wraptree.getBoundingClientRect()
-      this.width = conf.width || 1000
-      this.height = window.innerHeight - conf.top;
-      this.start.x = conf.left
-      this.start.y = conf.top
-    }
-  }
   drawTree() {
 
-    this.svg = d3.select(this.$refs.mytree).append("svg")
+    this.svg = d3.select(this.el).append("svg")
       .attr("width", this.width)
       .attr("height", this.height)
-      .attr('id', 'fytree')
 
-    let nlen = this.nodeData.length.toString().length
-    let num = this.nodeData.length.toString().substring(0, 1)
-    this.scalex = this.nodeData.length > 8 ? 3 : 1
-    if (nlen >= 3) {
-      this.scalex = 6 + num * nlen
-    } else if (nlen == 2) {
-      this.scalex = 6
-    }
-    let root
+    let root, self = this
     try {
       root = d3.stratify()
         .id((d) => {
           return d.targetId;
         })
         .parentId((d) => {
-          if (!d.link) {
-            return ''
-          } else {
-            return d.link.sourceId
-          }
+          return d.sourceId
         })(this.nodeData);
     } catch (e) {
-      this.$message.error('层级关系错误:生成图形失败')
       console.log('层级关系错误', e)
     }
+
     this.hierarchyData = d3.hierarchy(root)
       .sum((d) => {
-        return d.data.link ? d.data.link.index || 0 : 0
+        return d.data.weight || 0
       })
       .sort((a, b) => {
         return a.value - b.value
@@ -175,8 +111,9 @@ export default class treeChart {
     this.treeNode = treeData.descendants();
     this.treeLink = treeData.links()
 
+    this.g = this.svg.append('g')
     this.zoom = d3.zoom()
-      .scaleExtent(this.scale)
+      .scaleExtent([0.5, 3])
       .translateExtent([
         [0, 0],
         [this.width, this.height]
@@ -185,17 +122,20 @@ export default class treeChart {
         [0, 0],
         [this.width, this.height]
       ])
-      .on('zoom', this.zoomed)
-
-    this.g = this.svg.append('g').attr('class', 'mywrap').attr('id', 'treeg')
+      .on('zoom', this.zoomed( this.g))
 
     this.initDefineSymbol()
     this.drawNodes()
     this.drawLinks()
-    this.svg.call(d3.zoom().on("zoom", this.zoomed)).on('click', () => {
-        console.log('click')
-      })
-      .on("dblclick.zoom", null);
+
+    this.svg.call(d3.zoom().on("zoom", function(){
+      self.zoomed(this)
+    })
+      )
+    .on('click', () => {
+      console.log('click')
+    })
+    .on("dblclick.zoom", null);
 
   }
   drawLinks() {
@@ -208,6 +148,7 @@ export default class treeChart {
       .attr('stroke', '#317CEA')
       .style('fill', 'none')
       .attr('d', (d) => {
+
         const {
           source,
           target
@@ -217,8 +158,8 @@ export default class treeChart {
         let y = target.y
         let px, py, py1, px1
 
-        let baseNum = 40,
-          baseY = 60
+        let baseNum = 40, baseY = 30
+
         if (source.x > x) {
           px = source.x - baseNum
           py = source.y + baseY
@@ -254,18 +195,14 @@ export default class treeChart {
     let gDom = this.g
 
     nodes.forEach((d) => {
-      d.y = d.depth * 200 + 24;
-      d.x = d.x * this.scalex + 24;
+      d.y = d.depth * 150 + 24;
       d.value = d.data.data.id;
-      if (d.data.data.kh == that.parentId && d.data.data.link.level < 1) {
+      if (d.data.data.level < 1) {
         this.start.tx = -(d.x - this.width / 2)
         this.start.ty = -(d.y - this.height / 2)
       }
     });
-    if (that.parentId) {
-      this.zoomReset()
-    }
-
+    
     gDom.selectAll('.node').data(nodes)
       .enter()
       .append('g')
@@ -276,13 +213,7 @@ export default class treeChart {
         return 'translate(' + d.x + ',' + d.y + ')'
       })
       .each(function(d) {
-        let image = manPic
-        if (d.data.data.kh == that.parentId) {
-          image = menPic
-        }
-        if (d.data.data.targetId == that.nodeClick) {
-          image = nanPic
-        }
+
         d3.select(this)
           .append("image")
           .attr("width", imgW)
@@ -291,17 +222,7 @@ export default class treeChart {
             return 'translate(-' + imgW / 2 + ',-' + imgW / 2 + ')'
           })
           .attr("xlink:href", (d) => {
-            return image
-          })
-          .on('mousemove', function(d) {
-            d3.select(this).attr("xlink:href", nanPic)
-          })
-          .on('mouseleave', function() {
-            d3.select(this).attr("xlink:href", (d) => {
-              return image
-            })
-          }).on("click", function(d) {
-            that.clickDetail(d)
+            return manPic
           })
       })
     this.drawNodeText();
@@ -313,33 +234,13 @@ export default class treeChart {
       fontAlign = 'middle',
       that = this
 
-    // 交易时间 转出次数
     this.g.selectAll('.node').append('text')
-      .attr('dy', -(imgW))
+      .attr('dy', (imgW * 1.2))
       .attr('font-size', fontSize)
       .style('text-anchor', fontAlign)
       .style('color', fontColor)
       .text((d) => {
-        let link = d.data.data.link,
-          title = ''
-        if (link) {
-          title = link.jysj || '次数:' + link.fequencies
-        }
-        return title
-      }).on("click", function(d) {
-        that.clickDetail(d)
-      })
-
-    // 金额
-    this.g.selectAll('.node').append('text')
-      .attr('dy', -(imgW * 0.6))
-      .attr('font-size', fontSize)
-      .style('text-anchor', fontAlign)
-      .style('color', fontColor)
-      .text((d) => {
-        return d.data.data.link ? d.data.data.link.weight : ''
-      }).on("click", function(d) {
-        that.clickDetail(d)
+        return d.data.data ? `魅力值：${d.data.data.weight}` : ''
       })
 
     this.g.selectAll('.node').append('text')
@@ -348,44 +249,16 @@ export default class treeChart {
       .style('text-anchor', fontAlign)
       .style('color', fontColor)
       .text((d) => {
-        return d.data.data.mc || ''
+        return d.data.data.name || ''
       })
 
-    this.g.selectAll('.node').append('text')
-      .attr('dy', imgW * 3 / 4 + 20)
-      .attr('font-size', fontSize)
-      .style('text-anchor', fontAlign)
-      .style('color', fontColor)
-      .text((d) => {
-        return d.data.data.kh
-      })
   }
-  clickDetail(d) {
-    let {
-      source,
-      target,
-      targetId,
-      level
-    } = d.data.data.link
-    if (level < 0) {
-      return
-    }
-    this.nodeClick = targetId
-    let param = {
-      jdbz: '出',
-      source: source,
-      target: target,
-      dataSource: this.dataSource,
-      ...this.defaultQuery
-    }
-    this.requestDetail = [{
-      url: '/api/singleBillAnalysis/queryLinkDetails',
-      param: param,
-      noPage: true
-    }]
-  }
-  zoomed() {
-    this.g.attr('transform', d3.event.transform)
+  zoomed(el) {
+    // console.log(this,el)
+    // el.attr('transform', d3.event.transform)
+    var transform = d3.zoomTransform(el);
+    this.scale = transform.k;
+    this.g.attr('transform', "translate(" + transform.x + "," + transform.y + ")scale(" + transform.k + ")")
   }
   zoomIn() {
     this.svg.transition().call(this.zoom.scaleBy, 2)
@@ -447,7 +320,3 @@ export default class treeChart {
 
   }
 }
-};
-
-
-

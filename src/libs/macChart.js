@@ -1,26 +1,16 @@
 import * as d3 from 'd3'
-import {
-  deepEqual,type
-} from '@/utils/index'
-import bus from '@/components/common/bus'
 
 const fontSize = 10;
 const symbolSize = 14;
 const padding = 10;
 
-const macPic = require('@/assets/img/texture/blue/DHHM.png');
-const manPic = require('@/assets/img/texture/blue/man.png');
-const menPic = require('@/assets/img/texture/orange/man.png');
+const manPic = require('@/img/wx.png');
 const imgW = 40
 
-/*
- * 630 todo  点击节点 查看详情
- 点击线条。查看次数？
- * */
+
 export default class MacChart {
-  /**/
-  constructor(el) {
-    this.el = el
+  constructor({el}) {
+     this.el = `#${el}`
   }
 
   resetNode() {
