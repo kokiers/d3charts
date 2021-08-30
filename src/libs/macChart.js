@@ -1,4 +1,6 @@
 import * as d3 from 'd3'
+var Mock = require('mockjs')
+var Random = Mock.Random
 
 const fontSize = 10;
 const symbolSize = 14;
@@ -8,67 +10,84 @@ const manPic = require('@/img/wx.png');
 const imgW = 40
 
 
+function getData() {
+  var data = Mock.mock({
+    'node|4-6': [{
+      'kh': /[62]\d{17}/,
+      'mac': /[a-z][A-Z][0-9]{6,10}/
+    }],
+  })
+  let nodes = [], links = [], mac = []
+  data.node.forEach(val=>{
+
+    nodes.push({
+      name: Random.cname(),
+      kh: val.kh,
+      nodeType: 0
+    })
+    nodes.push({
+      nodeType: 2,
+      kh: val.mac
+    })
+    mac.push(val.mac)
+    links.push({
+      targetNode: val.kh,
+      sourceNode: val.mac
+    })
+    if (nodes.length > 2){
+      let index = parseInt(Math.random() * (mac.length - 1))
+      links.push({
+        targetNode: val.kh,
+        sourceNode: mac[index]
+      })
+    }
+
+  })
+  return {nodes,links}
+}
+
 export default class MacChart {
-  constructor({el}) {
-     this.el = `#${el}`
+  constructor({
+    el
+  }) {
+    this.el = `#${el}`
   }
 
   resetNode() {
     let dom = d3.select(this.el)
       .select("svg")
-    if (dom){
+    if (dom) {
       dom.remove();
     }
     this.lineGroup = null
     this.lineTextGroup = null
   }
-  resetRender(flag){
+  resetRender(flag) {
     let dom = d3.select(this.el)
       .select("svg")
-    if (dom){
+    if (dom) {
       dom.remove();
     }
     this.lineGroup = null
     this.lineTextGroup = null
-    this.initRender(flag)
+    this.render(flag)
   }
 
   //主渲染方法 {link,node}
-  render(data,param,key) {
+  render(data, param, key) {
     this.scale = 1;
-    this.chartKey = key 
+    this.chartKey = key
     this.idNode = param ? param.split(',') : []
-    let { link, node } = data
-    if (!node || node.length == 0){
-      return
-    }
-
-    let links = [], clearLink = []
-    link.map(v=>{
-      let obj = {
-        linLinkCount: v.linLinkCount,
-        sourceNode: v.sourceNode,
-        targetNode: v.targetNode
-      }
-      let index = links.findIndex(item=>{
-        return deepEqual(item, obj);
-      })
-      if (index == -1){
-        links.push(obj)
-        clearLink.push(v)
-      }
-    })
-    link = null
-    links = null
-    this.data = node;
-    this.link = clearLink
+    let {links, nodes} = getData()
+    this.data = nodes;
+    this.link = links
     this.initRender()
   }
-  initRender(flag){
-    if (flag){
+  initRender(flag) {
+    if (flag) {
       this.width = window.innerWidth;
       this.height = window.innerHeight;
-    }else{
+    } else {
       let dom = document.querySelector(this.el)
       let style = dom.getBoundingClientRect()
       this.width = style.left == 0 ? style.width - 390 : style.width;
@@ -91,34 +110,29 @@ export default class MacChart {
     let origin = [this.width / 2, this.height / 2];
 
     //  有 chartkey 
-    if (!this.chartKey){
-      let points = this.getVertices(origin, Math.min(this.width, this.height) * 0.3, this.data.length);
-      this.data = this.data.map((item, i) => {
-        if (type(item) == 'string' ){
-          return {
-            x: points[i].x,
-            y: points[i].y,
-            name: item
-          }
-        }else{
-          item.x = points[i].x
-          item.y = points[i].y
-          item.name = item.kh
-          return item
-        }
-      })
-    }else{
-      let { M , L} = this.getSpace();
+    // if (!this.chartKey) { //圆形闭环
+    //   let points = this.getVertices(origin, Math.min(this.width, this.height) * 0.3, this.data.length);
+    //   this.data = this.data.map((item, i) => {
+    //       item.x = points[i].x
+    //       item.y = points[i].y
+    //       return item
+    //   })
+    // } else {
+      let {
+        M,
+        L
+      } = this.getSpace();
 
-      let a = 0, b = 0
+      let a = 0,
+        b = 0
       this.data.forEach((item, i) => {
         let x, y
         if (item.nodeType) {
-          x = M * a + M/2
+          x = M * a + M / 2
           y = 60
           a++
-        }else{
-          x = L * b + L/2
+        } else {
+          x = L * b + L / 2
           y = this.height - 60
           b++
         }
@@ -126,22 +140,23 @@ export default class MacChart {
         item.y = y;
         item.name = item[this.chartKey]
       })
-    }
+    // }
   }
 
   getSpace() {
-    let mac = 0,man = 0
-    this.data.forEach((v,k)=>{
-      if (v.nodeType){
+    let mac = 0,
+      man = 0
+    this.data.forEach((v, k) => {
+      if (v.nodeType) {
         mac++
-      }else{
+      } else {
         man++
       }
     })
     return {
-      M: mac ? this.width/mac : 0,
-      L: man ? this.width/man : 0
-    } 
+      M: mac ? this.width / mac : 0,
+      L: man ? this.width / man : 0
+    }
   }
 
 
@@ -184,27 +199,27 @@ export default class MacChart {
   }
 
   initDefineSymbol() {
-    let defs=this.container.append('svg:defs');
+    let defs = this.container.append('svg:defs');
 
     //箭头
     const marker = defs
-    .selectAll('marker')
-    .data(this.link)
-    .enter()
-    .append('svg:marker')
-    .attr('id', (link, i) => 'marker-' + i)
-    .attr('markerUnits', 'userSpaceOnUse')
-    .attr('viewBox', '0 -5 10 10')
-    .attr('refX', symbolSize + padding)
-    .attr('refY', 0)
-    .attr('markerWidth', 14)
-    .attr('markerHeight', 14)
-    .attr('orient', 'auto')
-    .attr('stroke-width', 2)
-    .append('svg:path')
-    .attr('d', 'M2,0 L0,-3 L9,0 L0,3 M2,0 L0,-3')
-    .attr('fill','#317CEA')
-    .attr('class','arrow')
+      .selectAll('marker')
+      .data(this.link)
+      .enter()
+      .append('svg:marker')
+      .attr('id', (link, i) => 'marker-' + i)
+      .attr('markerUnits', 'userSpaceOnUse')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', symbolSize + padding)
+      .attr('refY', 0)
+      .attr('markerWidth', 14)
+      .attr('markerHeight', 14)
+      .attr('orient', 'auto')
+      .attr('stroke-width', 2)
+      .append('svg:path')
+      .attr('d', 'M2,0 L0,-3 L9,0 L0,3 M2,0 L0,-3')
+      .attr('fill', '#317CEA')
+      .attr('class', 'arrow')
 
   }
 
@@ -257,10 +272,7 @@ export default class MacChart {
       .attr('transform', (d) => {
         return 'translate(-' + imgW / 2 + ',-' + imgW / 2 + ')'
       })
-      .attr("xlink:href", (d) => {
-        // TODO node 节点类型的区分。0708
-        return d.nodeType ? macPic : this.idNode.includes(d.kh) ? menPic : manPic
-      })
+      .attr("xlink:href", manPic)
   }
 
   drawNodeTitle() {
@@ -270,10 +282,10 @@ export default class MacChart {
         return d.mc || d.name;
       })
       .attr('font-size', '12px')
-      .attr('dx', (d)=>{
+      .attr('dx', (d) => {
         return -(getTextWidth(d.mc || d.name))
       })
-      .attr("dy", (d)=>{
+      .attr("dy", (d) => {
         return d.nodeType ? -(symbolSize * 2) : symbolSize * 2.4
       })
 
@@ -283,10 +295,10 @@ export default class MacChart {
         return d.kh || '';
       })
       .attr('font-size', '12px')
-      .attr('dx', (d)=>{
+      .attr('dx', (d) => {
         return -(getTextWidth(d.kh))
       })
-      .attr("dy", (d)=>{
+      .attr("dy", (d) => {
         return d.nodeType ? -(symbolSize * 2) : symbolSize * 3.4
       })
   }
@@ -318,12 +330,12 @@ export default class MacChart {
       let source = d.sourceNode
       let target = d.targetNode
       let souIndex = data.findIndex(v => {
-        return v.name == source
+        return v.kh == source
       })
       let tarIndex = data.findIndex(v => {
-        return v.name == target
+        return v.kh == target
       })
-      
+
       let sx = data[souIndex].x || 0;
       let tx = data[tarIndex].x || 0;
       let sy = data[souIndex].y || 0;
@@ -334,7 +346,8 @@ export default class MacChart {
   }
 
   drawLinkText() {
-    let data = this.data, self = this;
+    let data = this.data,
+      self = this;
 
     if (this.lineTextGroup) {
       this.lineTexts.attr('transform', getTransform)
@@ -348,19 +361,19 @@ export default class MacChart {
         .attr('dy', -40)
         .attr('transform', getTransform)
 
-      this.lineTexts
-        .append('tspan')
-        .text((d, i) => {
-          return d.linLinkCount 
-        })
-        .style('color','orange')
-        .attr('dy', '5')
-        .on('click',(d)=>{
-          bus.$emit('link-count-detail', d);
-        })
-        // .attr('dx', function() {
-        //   return -this.getBBox().width / 3
-        // })
+      // this.lineTexts
+      //   .append('tspan')
+      //   .text((d, i) => {
+      //     return d.linLinkCount
+      //   })
+      //   .style('color', 'orange')
+      //   .attr('dy', '5')
+      //   .on('click', (d) => {
+      //     bus.$emit('link-count-detail', d);
+      //   })
+      // .attr('dx', function() {
+      //   return -this.getBBox().width / 3
+      // })
     }
 
 
@@ -369,10 +382,10 @@ export default class MacChart {
       let source = link.sourceNode
       let target = link.targetNode
       let souIndex = data.findIndex(v => {
-        return v.name == source
+        return v.kh == source
       })
       let tarIndex = data.findIndex(v => {
-        return v.name == target
+        return v.kh == target
       })
 
       let s = data[souIndex];
@@ -435,4 +448,3 @@ function getTextWidth(str) {
   context = null
   return width / 2
 }
-

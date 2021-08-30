@@ -17,6 +17,8 @@ export default {
         this.pie.initData()
         this.tree = new treeChart({el:'tree'})
         this.tree.initTree()
+        this.mac = new macChart({el: 'mac'})
+        this.mac.render()
 
       })
     },
@@ -24,16 +26,20 @@ export default {
         return {
             isAlive: true,
             pie: null,
-            list: [{
+            list: [
+            {
               name: '饼图',
               id: 'pie'
-            },{
+            },
+            {
               name: '树形图',
               id: 'tree'
-            },{
+            },
+            {
               name: '树形图',
               id: 'mac'
-            }]
+            }
+            ]
         }
     },
    methods:{
@@ -45,6 +51,8 @@ export default {
         case 'tree':
           this.tree.resetSvg()
           break;
+        case 'mac':
+          this.mac.resetRender()
       }
     }
    }
