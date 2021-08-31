@@ -1,4 +1,19 @@
 import * as d3 from 'd3'
+const Mock = require('mockjs')
+const Random = Mock.Random
+
+
+function getData() {
+  var data = Mock.mock({
+    'list|4-13': [{
+      'name': /[A-Z]{2,4}[0-9]{2,4}/
+    }],
+  })
+  return data.list.map(v=>{
+    v.value = Random.natural(100,999999)
+    return v
+  })
+}
 export default class  StockPie {
   constructor({el,width,height,innerRadius,outerRadius}) {
     this.el = `#${el}`
@@ -36,7 +51,7 @@ export default class  StockPie {
           name: `帅哥${parseInt(Math.random() * 12)}`
         })
       }
-      this.list = [...list]
+      this.list = getData() //[...list]
       this.drawPieChart();
     }
   }

@@ -138,7 +138,6 @@ export default class MacChart {
         }
         item.x = x;
         item.y = y;
-        item.name = item[this.chartKey]
       })
     // }
   }

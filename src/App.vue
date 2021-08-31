@@ -32,7 +32,7 @@ export default {
               id: 'pie'
             },
             {
-              name: '树形图',
+              name: '层级树形图',
               id: 'tree'
             },
             {
