@@ -138,7 +138,10 @@ export default class  StockPie {
           .append('path')
           .attr('class', 'tips')
           .attr('fill', 'none')
-          .attr('stroke', color);
+          .attr('stroke', color)
+          .attr('d', (d) => {
+            return 'M ' + points[0].x + ' ' + points[0].y + ' L ' + points[1].x + ' ' + points[1].y + ' L ' + points[2].x + ' ' + points[2].y
+          })
 
         let direct = 'end';
         if (angle >= -Math.PI / 2 && angle <= Math.PI / 2) {
@@ -149,6 +152,7 @@ export default class  StockPie {
         that.drawTextTips(el, pointt[0], pointt[1] + 10, d.data.value, 'y', direct)
       })
 
+    // 内圆。
     let circle = g.append('circle').attr('r', this.innerRadius).attr('fill', '#fff')
     let num = this.sumNum
    
@@ -160,6 +164,7 @@ export default class  StockPie {
         } = d3.event
       })
       .on("mouseout", () => {
+        console.log('out')
       })
   }
 
