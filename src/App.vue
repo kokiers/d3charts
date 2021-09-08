@@ -10,16 +10,18 @@
 import StockPie from './libs/StockPie'
 import treeChart from './libs/treeChart'
 import macChart from './libs/macChart'
+import barChart from './libs/barChart'
 export default {
     mounted(){
       this.$nextTick(()=>{
-        this.pie = new StockPie({el:'pie'})
-        this.pie.initData()
-        this.tree = new treeChart({el:'tree'})
-        this.tree.initTree()
-        this.mac = new macChart({el: 'mac'})
-        this.mac.render()
-
+        // this.pie = new StockPie({el:'pie'})
+        // this.pie.initData()
+        // this.tree = new treeChart({el:'tree'})
+        // this.tree.initTree()
+        // this.mac = new macChart({el: 'mac'})
+        // this.mac.render()
+          this.bar = new barChart({el: 'bar'})
+          this.bar.init()
       })
     },
     data(){
@@ -27,18 +29,22 @@ export default {
             isAlive: true,
             pie: null,
             list: [
-            {
-              name: '饼图',
-              id: 'pie'
-            },
-            {
-              name: '层级树形图',
-              id: 'tree'
-            },
-            {
-              name: '树形图',
-              id: 'mac'
-            }
+            // {
+            //   name: '饼图',
+            //   id: 'pie'
+            // },
+            // {
+            //   name: '层级树形图',
+            //   id: 'tree'
+            // },
+            // {
+            //   name: '树形图',
+            //   id: 'mac'
+            // },
+              {
+                name: '柱形图',
+                id: 'bar'
+              },
             ]
         }
     },
@@ -53,6 +59,9 @@ export default {
           break;
         case 'mac':
           this.mac.resetRender()
+          break;
+        case 'bar':
+          this.bar.reset()
       }
     }
    }
