@@ -44,7 +44,7 @@ export default class FyBar {
     this.drawBar()
   }
   drawBar(){
-    let fixNum = 0.5
+
     let { padding, data, width, height, ctx } = this
     const barMinWidth = 20
     let max = 0, Len = data.length
@@ -54,11 +54,12 @@ export default class FyBar {
     while(max % 10 != 0){
       max++
     }
-
+    this.max = max
     let stepX = 4
     while( (max / stepX) % 5 != 0){
       stepX++
     }
+    this.stepX = stepX
 
     let barWidth = parseInt((width - padding * 2 ) / (Len * 2 + 1)), stepNum 
     if (barWidth < barMinWidth) {
@@ -67,47 +68,72 @@ export default class FyBar {
     }else{
       stepNum = barWidth
     }
-    // x,y轴
+    this.barWidth = barWidth
+    this.stepNum = stepNum
+
+    this.drawLineLabel()
+    this.drawLineBar(1)
+  }
+  drawLineLabel(){
+    let { padding, width, height, ctx, stepX, max } = this
+    ctx.translate(0.5,0.5);
     ctx.beginPath()
     ctx.lineWidth = 1
+    ctx.setLineDash([]);
+    ctx.strokeStyle = '#000'
     ctx.lineJoin = "miter";
-    ctx.moveTo(padding + fixNum,padding + fixNum)
-    ctx.lineTo(padding + fixNum,height - padding + fixNum)
-    ctx.lineTo(width - padding + fixNum,height - padding + fixNum)
+    ctx.moveTo(padding, padding)
+    ctx.lineTo(padding, height - padding)
+    ctx.lineTo(width - padding, height - padding)
     ctx.stroke()
-
-    // TODO 画xy 轴刻度
+    ctx.closePath()
 
     let maxH = height - padding * 2 
-    // 画x轴
+    // 画x轴文字
     for(let x = 0; x < stepX; x++){
       let y1 = x * parseInt(maxH / stepX) + 20
       let num = max - max / stepX * x
       ctx.font = "12px serif";
       ctx.fillStyle = '#000'
       ctx.textAlign = 'right'
-      ctx.fillText( num, padding - 2 + fixNum, y1 + 7 + fixNum );
+      ctx.fillText( num, padding - 2, y1 + 7 );
       ctx.beginPath()
       ctx.strokeStyle = '#ccc'
       ctx.setLineDash([4, 16]);
-      ctx.lineDashOffset = padding + fixNum;
-      ctx.moveTo(padding + fixNum,y1 + fixNum)
-      ctx.lineTo(width - padding + fixNum,y1 + fixNum)
+      ctx.lineDashOffset = padding;
+      ctx.moveTo(padding, y1 )
+      ctx.lineTo(width - padding, y1)
       ctx.stroke();
+      ctx.closePath()
     }
-
+    ctx.translate(-0.5,-0.5);
+  }
+  drawLineBar(step){
+    let { padding, width, height, ctx, stepX, max, data, stepNum, barWidth } = this
+    let maxH = height - padding * 2 
     // 画柱形
+    ctx.translate(0.5,0.5);
     ctx.font = "14px serif";
     ctx.textAlign = 'center'
     data.forEach((v,k)=>{
-      let hei = parseInt((v.value / max) * maxH)
+      let hei = parseInt((v.value / max) * maxH) * step / 50
       let x1 = parseInt(padding + stepNum * (k + 1) + barWidth * k)
       ctx.beginPath()
       ctx.fillStyle = 'rgb(128, 180, 121)'
-      ctx.fillRect(x1 + fixNum, maxH - hei + padding  + fixNum, barWidth, hei);
+      ctx.fillRect(x1 , maxH - hei + padding, barWidth, hei);
       ctx.fillStyle = '#000'
-      ctx.fillText(v.name, x1 + barWidth / 2 + fixNum , height - 7 + fixNum);
-      ctx.fillText(v.value, x1 + barWidth / 2  + fixNum, maxH - hei + padding - 2 + fixNum);
+      ctx.fillText(v.name, x1 + barWidth / 2, height - 7);
+      ctx.fillText(v.value, x1 + barWidth / 2 , maxH - hei + padding - 2);
+      ctx.closePath();
     })
+    ctx.translate(-0.5,-0.5);
+    step++
+    if (step <= 50) {
+      setTimeout(()=>{
+        ctx.clearRect(0,0,width,height)
+        this.drawLineLabel()
+        this.drawLineBar(step)
+      },16)
+    }
   }
 }
